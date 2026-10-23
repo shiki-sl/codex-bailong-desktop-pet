@@ -4,7 +4,7 @@ Codex desktop stream protocol 11 uses four-byte little-endian JSON frames.
 Typed decoding skips unknown fields in C, including reasoning and tool output.
 Only initialize/follow/unfollow and negative discovery responses are sent.
 """
-import ctypes,json,os,struct,threading,time
+import ctypes,json,os,struct,sys,threading,time
 from uuid import UUID
 import msgspec
 
@@ -233,6 +233,9 @@ class LiveStatusReader(threading.Thread):
     def targets(self):
         with self.lock:return self._targets
     def run(self):
+        if sys.platform.startswith('linux'):
+            from linux_support import ipc_listen
+            return ipc_listen(self)
         if os.name!='nt':self.set_health('unavailable','ipc_disconnected');return
         from ctypes import wintypes
         import msvcrt

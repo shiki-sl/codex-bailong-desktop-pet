@@ -14,7 +14,11 @@ WATCH_FLAG='--watch-codex'
 def data_dir():return Path(os.environ['LOCALAPPDATA'])/'BailongEnhanced'
 def install_root():return Path(os.environ['LOCALAPPDATA'])/'Programs/BailongEnhanced'
 def preference_path():return data_dir()/'codex-startup.json'
-def startup_path():return Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/Startup/BailongCodexSync.vbs'
+def startup_path():
+    if sys.platform.startswith('linux'):
+        from linux_support import startup_path as linux_startup_path
+        return linux_startup_path(watcher=True)
+    return Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/Startup/BailongCodexSync.vbs'
 def read_json(path):
     try:
         value=json.loads(Path(path).read_text(encoding='utf-8'))
@@ -27,7 +31,7 @@ def enabled():return read_json(preference_path()).get('enabled') is True
 
 def app_command():
     if getattr(sys,'frozen',False):return [sys.executable]
-    return [str(Path(sys.executable).with_name('pythonw.exe')),str(Path(__file__).with_name('enhanced.py'))]
+    return [sys.executable if sys.platform.startswith('linux') else str(Path(sys.executable).with_name('pythonw.exe')),str(Path(__file__).with_name('enhanced.py'))]
 
 def supports_watcher(exe):
     try:return tuple(map(int,Path(exe).parent.name.split('-')[0].split('.'))) >= (0,8,1)
@@ -35,6 +39,9 @@ def supports_watcher(exe):
 
 def register(exe=None):
     """Installer calls this inside its existing recoverable entry transaction."""
+    if sys.platform.startswith('linux'):
+        from linux_support import register_startup
+        return register_startup(enabled(),watcher=True)
     path=startup_path()
     if not enabled() or (exe is not None and not supports_watcher(exe)):
         path.unlink(missing_ok=True);return
@@ -45,13 +52,16 @@ def register(exe=None):
     temp=path.with_suffix('.tmp');temp.write_text(script,encoding='utf-16');os.replace(temp,path)
 
 def ensure_watcher(executable=None):
+    if sys.platform.startswith('linux'):
+        from linux_support import start_watcher
+        return start_watcher()
     if enabled():
         return spawn(([str(executable)] if executable else app_command())+[WATCH_FLAG])
 
 def spawn(command):
     env=os.environ.copy()
     for key in ('BAILONG_DEPLOY_TOKEN','BAILONG_DEPLOY_RECEIPT'):env.pop(key,None)
-    return subprocess.Popen(command,creationflags=0x08000000,close_fds=True,env=env)
+    return subprocess.Popen(command,creationflags=0x08000000 if os.name=='nt' else 0,close_fds=True,env=env)
 
 def stop_watchers(root=None):
     root=Path(root or install_root()).resolve();manifest=read_json(root/'installations.json')
@@ -92,6 +102,9 @@ def desktop_executable(path):
     return name=='codex.exe' and (Path(path).parent/'resources/app.asar').is_file()
 
 def desktop_sessions():
+    if sys.platform.startswith('linux'):
+        from linux_support import desktop_sessions as linux_desktop_sessions
+        return linux_desktop_sessions()
     sessions=set();uncertain=False
     for process in psutil.process_iter(['name']):
         try:
@@ -125,6 +138,9 @@ def current_command():
     return [str(exe)] if exe.is_file() and supports_watcher(exe) else None
 
 def main():
+    if sys.platform.startswith('linux'):
+        from linux_support import watcher_main
+        return watcher_main()
     kernel=ctypes.WinDLL('kernel32',use_last_error=True)
     kernel.CreateMutexW.argtypes=[ctypes.c_void_p,ctypes.c_bool,ctypes.c_wchar_p];kernel.CreateMutexW.restype=ctypes.c_void_p
     kernel.CloseHandle.argtypes=[ctypes.c_void_p]

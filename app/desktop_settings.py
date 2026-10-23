@@ -1,4 +1,5 @@
 """Non-modal settings, live controls and character diagnostics."""
+import sys
 import copy
 import threading
 from PySide6.QtCore import Qt,QThread,Signal
@@ -56,7 +57,10 @@ class SettingsDialog(QDialog):
         for key,title in [('character_visible','显示人物（关闭后仅保留独立卡片）'),('on_top','始终置顶'),('video_fullscreen_yield','视频全屏时临时取消置顶（完成提醒优先）'),('mouse_through','鼠标穿透（从托盘找回）'),('bubble','显示面板（关闭后仅保留人物）'),('quota_visible','显示额度和重置时间')]:
             self.check(appearance,key,title)
             if key=='video_fullscreen_yield':
-                note=QLabel('完成提醒确认后，视频仍全屏则继续让位；退出全屏恢复当前置顶设置。')
+                if sys.platform.startswith('linux'):
+                    self.fields[key].setEnabled(False)
+                    self.fields[key].setToolTip('Linux 尚未接入系统级全屏视频检测；可手动切换置顶')
+                note=QLabel('Linux 暂不支持自动识别全屏视频；可手动关闭始终置顶。' if sys.platform.startswith('linux') else '完成提醒确认后，视频仍全屏则继续让位；退出全屏恢复当前置顶设置。')
                 note.setWordWrap(True);note.setStyleSheet(f'font-size:10px;color:{MUTED};');appearance.addRow(note)
         self.section(appearance,'卡片与快捷入口','自动模式闲置后收为胶囊；手动选择胶囊或极简后不会因新状态自动展开。')
         self.mode=QComboBox();self.mode.addItem('自动：正常卡片 / 闲置时胶囊','auto');self.mode.addItem('胶囊：状态和快捷圆','mini');self.mode.addItem('极简：仅额度百分比','minimal')
@@ -89,8 +93,8 @@ class SettingsDialog(QDialog):
         self.advanced_button.toggled.connect(self.advanced_card.set_expanded)
         self.advanced_button.toggled.connect(lambda checked:self.advanced_button.setText('收起高级动作参数' if checked else '展开高级动作参数'))
         connection=self.tab('Codex 联动')
-        self.section(connection,'启动与退出','Windows 登录启动与随 Codex 启动相互独立；按需开启。')
-        self.startup=QCheckBox('登录 Windows 时启动');connection.addRow(self.startup)
+        self.section(connection,'启动与退出','登录启动与随 Codex 启动相互独立；按需开启。' if sys.platform.startswith('linux') else 'Windows 登录启动与随 Codex 启动相互独立；按需开启。')
+        self.startup=QCheckBox('登录时启动' if sys.platform.startswith('linux') else '登录 Windows 时启动');connection.addRow(self.startup)
         self.field_tabs['startup']=self.tabs.count()-1;self.field_titles['startup']='开机启动'
         self.startup.toggled.connect(lambda:self.edited('startup'))
         self.codex_startup=QCheckBox('打开 Codex 时自动启动桌宠');connection.addRow(self.codex_startup)
@@ -153,8 +157,9 @@ class SettingsDialog(QDialog):
         self.lines=QPlainTextEdit();self.lines.setMaximumHeight(100);self.lines.setPlaceholderText('每行一句，自动台词不会播放声音');chat.addRow('自定义台词',self.lines)
         self.field_tabs['talk_lines']=self.tabs.count()-1;self.field_titles['talk_lines']='自定义台词';self.lines.textChanged.connect(lambda:self.edited('talk_lines'))
         maintenance=self.tab('更新与维护')
-        self.section(maintenance,'软件更新','检查 GitHub 公开稳定版；下载和安装由你主动发起。')
+        self.section(maintenance,'软件更新','Linux 请手动更新源码；上游安装包目前仅支持 Windows。' if sys.platform.startswith('linux') else '检查 GitHub 公开稳定版；下载和安装由你主动发起。')
         self.check(maintenance,'update_checks','自动检查更新（不自动下载）')
+        if sys.platform.startswith('linux'):self.fields['update_checks'].setEnabled(False)
         if hasattr(pet,'updates'):
             from update_widgets import UpdatePanel
             self.update_panel=UpdatePanel(pet.updates);maintenance.addRow(self.update_panel)

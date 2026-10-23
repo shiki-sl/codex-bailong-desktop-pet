@@ -7,6 +7,8 @@ from PySide6.QtGui import QFont,QFontDatabase,QGuiApplication
 
 LATIN_FAMILY='Chakra Petch'
 FONT_FAMILIES=[LATIN_FAMILY,'Microsoft YaHei UI','Microsoft YaHei','Segoe UI','sans-serif']
+if sys.platform.startswith('linux'):
+    FONT_FAMILIES[1:1]=['Noto Sans CJK SC','Noto Sans CJK JP','Noto Sans']
 FONT_CSS='font-family:'+','.join('"'+name+'"' for name in FONT_FAMILIES)+';font-weight:600;'
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1]
 FONT_FILE=ROOT/'app/fonts/ChakraPetch-Regular.ttf'

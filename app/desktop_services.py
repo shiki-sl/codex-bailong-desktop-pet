@@ -13,6 +13,10 @@ from PIL import Image
 from desktop_core import atomic_json
 
 def command():
+    if sys.platform.startswith('linux'):
+        import shlex
+        from linux_support import app_command
+        return shlex.join(app_command())
     if getattr(sys,'frozen',False):return '"'+sys.executable+'"'
     return '"'+str(Path(sys.executable).with_name('pythonw.exe'))+'" "'+str(Path(__file__).with_name('enhanced.py'))+'"'
 
@@ -21,6 +25,9 @@ def startup_paths():
     return root/'BailongEnhanced.vbs',root/'白龙桌宠增强版.lnk'
 
 def autostart_enabled():
+    if sys.platform.startswith('linux'):
+        from linux_support import startup_path
+        return startup_path().is_file()
     vbs,link=startup_paths()
     if vbs.exists():
         try:return command().replace('"','""') in vbs.read_text(encoding='utf-16')
@@ -35,6 +42,9 @@ def autostart_enabled():
     return False
 
 def set_autostart(enabled):
+    if sys.platform.startswith('linux'):
+        from linux_support import register_startup
+        return register_startup(enabled)
     vbs,link=startup_paths();vbs.parent.mkdir(parents=True,exist_ok=True)
     if enabled:
         script='Option Explicit\nDim shell\nSet shell = CreateObject("WScript.Shell")\nshell.Run "'+command().replace('"','""')+'", 0, False\n'
@@ -169,6 +179,10 @@ def import_character(source,destination):
         raise
 
 def codex_desktop_open():
+    if sys.platform.startswith('linux'):
+        from linux_support import desktop_sessions
+        sessions=desktop_sessions()
+        return None if sessions is None else bool(sessions)
     """Inspect package GUI processes on the monitor thread, never the UI loop."""
     import psutil
     denied=False
@@ -192,6 +206,9 @@ def codex_conversation_url(session):
     return 'codex://threads/'+sid
 
 def open_codex(session=None):
+    if sys.platform.startswith('linux'):
+        from linux_support import open_codex as open_linux_codex
+        return open_linux_codex(session)
     if session is not None:
         url=codex_conversation_url(session)
         try:os.startfile(url)
@@ -213,3 +230,6 @@ def open_codex(session=None):
     appid=result.stdout.strip()
     if not appid:raise OSError('未找到 Codex 安装，请先从开始菜单打开一次')
     os.startfile('shell:AppsFolder\\'+appid)
+
+if sys.platform.startswith('linux'):
+    from linux_support import SecretStore

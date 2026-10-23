@@ -224,6 +224,12 @@ class Pet(QWidget):
             if sound.is_file():
                 try:winsound.PlaySound(str(sound),winsound.SND_FILENAME|winsound.SND_ASYNC|winsound.SND_NODEFAULT)
                 except RuntimeError:pass
+        elif sys.platform.startswith('linux'):
+            import shutil,subprocess
+            sound=ROOT/'app/sounds/click.wav'
+            player=shutil.which('pw-play') or shutil.which('paplay')
+            if player and sound.is_file():
+                subprocess.Popen([player,str(sound)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     def choose(self,item):
         self.click_timer.stop();self.last_click=None;self.generation+=1
         try:self.play_click_sound();self.play(item,'variant');self.say(item.get('line',''),4000)

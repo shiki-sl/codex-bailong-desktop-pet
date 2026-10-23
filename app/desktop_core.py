@@ -3,6 +3,7 @@ import copy
 import json
 import math
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -15,6 +16,8 @@ DEFAULTS=dict(schema=2,scale=1.0,playback_speed=1.0,action_gap=2.0,
     capsule_action='chatgpt',capsule_website='',talk_min=30.0,talk_max=90.0,talk_quiet=True,
     talk_lines=['忙完记得休息一下。','我在这里陪着你。','今天也一起把小事做好吧。'],
     facing=1,character='builtin',character_preferences={},chat_follow=False)
+if sys.platform.startswith('linux'):
+    DEFAULTS.update(video_fullscreen_yield=False,update_checks=False)
 
 def atomic_json(path,value):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)

@@ -1,5 +1,5 @@
 """One background update operation, explicit installation, and silent periodic checks."""
-import threading,time
+import sys,threading,time
 from PySide6.QtCore import QObject,QThread,QTimer,Signal
 from app_updates import check_release,stage_installer,version_tuple,prune_completed,UpdateError,UpdateCancelled,NoRelease,ensure_checksum
 
@@ -55,10 +55,16 @@ class UpdateController(QObject):
     def _selected(self,release):
         self.release=release;self.publish(package_kind=release.kind,package_reason=release.reason,total=release.size,downloaded=0,message=release.reason)
     def check(self):
+        if sys.platform.startswith('linux'):
+            self.publish(phase='none',message='Linux 适配版请手动更新；上游安装包仅支持 Windows')
+            return False
         if self.closing or self.job is not None:return False
         self.publish(phase='checking',message='正在检查公开稳定版…')
         self._bind(UpdateJob(self.current,self.cache,parent=self));return True
     def download_install(self):
+        if sys.platform.startswith('linux'):
+            self.publish(phase='none',message='Windows 安装包不适用于此 Linux 版本')
+            return False
         if self.closing or self.job is not None or self.release is None or version_tuple(self.release.version)<=version_tuple(self.current):return False
         self.install_requested=True;self.publish(phase='downloading',message='正在准备下载…',total=self.release.size)
         self._bind(UpdateJob(self.current,self.cache,self.release,parent=self));return True

@@ -6,6 +6,8 @@
 
 **[下载安装包](https://github.com/Wunsch2048/codex-bailong-desktop-pet/releases/latest)** · [快速部署](docs/快速部署说明.txt) · [全部新增功能](docs/新增功能说明.txt) · [开发说明](docs/DEVELOPMENT.md) · [迭代历史](docs/迭代历史.txt)
 
+Linux 可从源码运行：见 [Linux 环境、素材校验与启动说明](docs/LINUX.md)。Windows 安装与既有功能说明继续见下文。
+
 ## 桌面上可以做什么
 
 | 功能 | 实际表现 |

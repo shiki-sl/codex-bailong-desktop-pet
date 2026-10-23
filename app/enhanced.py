@@ -10,6 +10,10 @@ import queue
 import time
 from pathlib import Path
 
+if sys.platform.startswith('linux'):
+    from linux_support import configure_environment
+    configure_environment()
+
 # Companion watcher has no GUI, Qt initialization or animation resources.
 if __name__=='__main__' and '--watch-codex' in sys.argv:
     from codex_startup import main as watch_codex
@@ -639,6 +643,9 @@ class EnhancedPet(Pet):
                 self.silent_notifier.show(title,clean_text(text,120))
             except (OSError,ValueError):
                 pass  # the head bubble remains the guaranteed visible reminder
+        elif sys.platform.startswith('linux'):
+            from linux_support import notify
+            notify(title,clean_text(text,120))
         else:self.tray.showMessage(title,clean_text(text,120),QSystemTrayIcon.MessageIcon.Information,10000)
 
     def toggle_bubble(self):
@@ -773,11 +780,16 @@ def main():
                 destination=Path(sys.argv[index+1]);destination.parent.mkdir(parents=True,exist_ok=True);save_json(destination,report)
         return 0
     app=QApplication(sys.argv)
+    if sys.platform.startswith('linux'):
+        app.setApplicationName('bailong-linux')
+        app.setApplicationDisplayName('白龙桌宠')
+        app.setDesktopFileName('bailong-linux')
     app.setWindowIcon(QIcon(str(ROOT/'app/branding/bailong.ico')))
     from typography import install_ui_font
     install_ui_font(app)
     app.setQuitOnLastWindowClosed(False)
     server_name='bailong-enhanced-local-v1'
+    if sys.platform.startswith('linux'):server_name+='-'+str(os.getuid())
     if '--smoke-test' in sys.argv:server_name+='-smoke-'+str(os.getpid())
     socket=QLocalSocket()
     socket.connectToServer(server_name)
